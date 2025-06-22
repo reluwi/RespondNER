@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dashboard_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';  
 
 void main() {
   runApp(const MyApp());
@@ -33,6 +35,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  // Controllers to manage the text in the input fields
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
   // A list of dummy agency names for the dropdown
   final List<String> _agencies = [
     'National Disaster Response Force',
@@ -41,6 +47,78 @@ class _LoginPageState extends State<LoginPage> {
     'Regional Medical Services',
   ];
   String? _selectedAgency;
+
+  // The function to handle the login logic
+  Future<void> _login() async {
+    // Make sure your Python Flask server is running
+    // Use http://10.0.2.2:5000 for the Android emulator
+    // Use your computer's IP for a physical device (e.g., http://192.168.1.10:5000)
+    const String loginUrl = 'http://192.168.1.11:5000/login';
+
+    try {
+      final response = await http.post(
+        Uri.parse(loginUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        }),
+      );
+
+      // Check if the request was successful
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          // Navigate to dashboard on successful login
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const DashboardPage()),
+          );
+        } else {
+          // Show error dialog if credentials are wrong
+          _showErrorDialog();
+        }
+      } else {
+        // Handle server errors (e.g., 500 Internal Server Error)
+        _showErrorDialog();
+      }
+    } catch (e) {
+      // Handle network errors (e.g., no internet, server not running)
+      print(e); // For debugging purposes
+      _showErrorDialog();
+    }
+  }
+
+  // The function to show the "Can't Sign in?" dialog
+  void _showErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A4A7A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        title: const Text(
+          "Can't Sign in?",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+        ),
+        content: const Text(
+          "Please make sure your login credentials are correct.\n\nFor account assistance, contact your system administrator.",
+          style: TextStyle(color: Colors.white70, fontSize: 16),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.white, width: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12)
+            ),
+            child: const Text("Okay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +171,8 @@ class _LoginPageState extends State<LoginPage> {
 
                       _buildFormField(
                         label: 'Email:',
-                        child: _buildTextField(hintText: 'Write your email'),
+                        child: _buildTextField(hintText: 'Write your email',
+                          controller: _emailController,),
                       ),
                       const SizedBox(height: 20),
 
@@ -102,6 +181,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: _buildTextField(
                           hintText: 'Write your password',
                           obscureText: true,
+                          controller: _passwordController,
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -188,11 +268,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // A helper method to build styled text fields
-  Widget _buildTextField({required String hintText, bool obscureText = false}) {
-    return TextFormField(
-      obscureText: obscureText,
-      decoration: _inputDecoration(hintText: hintText),
-    );
+  Widget _buildTextField({
+    required String hintText, 
+    bool obscureText = false,
+    required TextEditingController controller,
+    }) {
+      return TextFormField(
+        controller: controller, // Use the controller
+        obscureText: obscureText,
+        decoration: _inputDecoration(hintText: hintText),
+      );
   }
 
   // Reusable input decoration for form fields
@@ -223,14 +308,7 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              // --- NAVIGATION LOGIC ADDED HERE ---
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const DashboardPage()),
-              );
-              // --- END OF NAVIGATION LOGIC ---
-            },
+            onPressed: _login, // Call the login function,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F), // Red button
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -244,9 +322,7 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(width: 16),
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              // Handle "Can't Sign in?" logic
-            },
+            onPressed: _showErrorDialog, // Call the error dialog function
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F), // Red button
               padding: const EdgeInsets.symmetric(vertical: 16),
