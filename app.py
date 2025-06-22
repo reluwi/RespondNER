@@ -44,9 +44,9 @@ def login():
         result = cursor.fetchone()
 
         if result:
-            db_password = result[0]
+            stored_hashed_password = result[0]
             # Verify the password (replace with hash check in a real app)
-            if user_password == db_password:
+            if check_password_hash(stored_hashed_password, user_password):
                 return jsonify({"success": True, "message": "Login successful."})
             else:
                 return jsonify({"success": False, "message": "Invalid credentials."})
