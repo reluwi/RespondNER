@@ -53,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
     // Make sure your Python Flask server is running
     // Use http://10.0.2.2:5000 for the Android emulator
     // Use your computer's IP for a physical device (e.g., http://192.168.1.10:5000)
-    const String loginUrl = 'http://192.168.1.11:5000/login';
+    const String loginUrl = 'https://respondner-api.onrender.com/login';
 
     try {
       final response = await http.post(
