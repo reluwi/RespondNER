@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2 
-from psycopg2 import extra
+from psycopg2.extras import DictCursor
 import os
 
 # Initialize the Flask App
@@ -31,7 +31,7 @@ def login():
 
         conn = get_db_connection()
         # The 'cursor_factory' makes it easier to work with results
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor = conn.cursor(cursor_factory=DictCursor)
 
         # Note: PostgreSQL uses '%s' for placeholders, just like mysql-connector
         query = "SELECT password FROM users WHERE email = %s"
