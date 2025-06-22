@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
 from mysql.connector import Error
+import os
 
 # Initialize the Flask App
 app = Flask(__name__)
@@ -10,10 +11,10 @@ CORS(app)
 
 # Database configuration
 db_config = {
-    'host': 'localhost',
-    'user': 'root',        # Your MySQL username
-    'password': '',        # Your MySQL password
-    'database': 'respondner_db'
+    'host': os.environ.get('DB_HOST'),
+    'user': os.environ.get('DB_USER'),
+    'password': os.environ.get('DB_PASSWORD'),
+    'database': os.environ.get('DB_DATABASE')
 }
 
 @app.route('/login', methods=['POST'])
