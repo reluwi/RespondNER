@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
 from mysql.connector import Error
-from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
 # Initialize the Flask App
@@ -44,15 +43,13 @@ def login():
         result = cursor.fetchone()
 
         if result:
-            stored_hashed_password = result[0]
+            stored_password = result[0]
             # Verify the password (replace with hash check in a real app)
-            if check_password_hash(stored_hashed_password, user_password):
+            if user_password == stored_password:
                 return jsonify({"success": True, "message": "Login successful."})
-            else:
-                return jsonify({"success": False, "message": "Invalid credentials."})
-        else:
-            # User not found
-            return jsonify({"success": False, "message": "Invalid credentials."})
+        
+        # If user not found or password doesn't match
+        return jsonify({"success": False, "message": "Invalid credentials."})
 
     except Error as e:
         print(f"Database error: {e}")
