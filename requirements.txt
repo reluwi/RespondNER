@@ -1,4 +1,4 @@
 Flask
 Flask-Cors
-mysql-connector-python
+psycopg2-binary
 gunicorn

@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import mysql.connector
-from mysql.connector import Error
+import psycopg2 
+from psycopg2 import extra
 import os
 
 # Initialize the Flask App
@@ -9,59 +9,48 @@ app = Flask(__name__)
 # Enable CORS to allow requests from your Flutter app
 CORS(app)
 
-# Database configuration
-db_config = {
-    'host': os.environ.get('DB_HOST'),
-    'user': os.environ.get('DB_USER'),
-    'password': os.environ.get('DB_PASSWORD'),
-    'database': os.environ.get('DB_DATABASE')
-}
+# We will use the full DATABASE_URL environment variable provided by Render
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+def get_db_connection():
+    """Creates a database connection."""
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
 
 @app.route('/login', methods=['POST'])
 def login():
     """Handles user login requests."""
     conn = None
-    cursor = None
     try:
-        # Get JSON data from the request body
         data = request.get_json()
-        if not data or 'email' not in data or 'password' not in data:
+        email = data.get('email')
+        user_password = data.get('password')
+
+        if not email or not user_password:
             return jsonify({"success": False, "message": "Email and password are required."}), 400
 
-        email = data['email']
-        user_password = data['password']
+        conn = get_db_connection()
+        # The 'cursor_factory' makes it easier to work with results
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # Connect to the database
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
-
-        # Use a parameterized query to prevent SQL injection
+        # Note: PostgreSQL uses '%s' for placeholders, just like mysql-connector
         query = "SELECT password FROM users WHERE email = %s"
         cursor.execute(query, (email,))
-
-        # Fetch the result
         result = cursor.fetchone()
 
         if result:
-            stored_password = result[0]
-            # Verify the password (replace with hash check in a real app)
+            stored_password = result['password'] # Access by column name
             if user_password == stored_password:
                 return jsonify({"success": True, "message": "Login successful."})
-        
-        # If user not found or password doesn't match
+
         return jsonify({"success": False, "message": "Invalid credentials."})
 
-    except Error as e:
-        print(f"Database error: {e}")
-        return jsonify({"success": False, "message": "A database error occurred."}), 500
     except Exception as e:
+        # Print the specific error to the logs for debugging
         print(f"An error occurred: {e}")
         return jsonify({"success": False, "message": "An internal server error occurred."}), 500
     finally:
-        # Ensure the connection is closed
-        if cursor:
-            cursor.close()
-        if conn and conn.is_connected():
+        if conn:
             conn.close()
 
 # This allows you to run the app by executing `python app.py`
