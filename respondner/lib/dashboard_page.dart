@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -18,11 +20,67 @@ class EmergencyPost {
     required this.extractedPost,
     required this.namedEntities,
   });
+
+  factory EmergencyPost.fromJson(Map<String, dynamic> json) {
+    return EmergencyPost(
+      timestamp: json['timestamp'] ?? 'N/A',
+      extractedPost: json['extractedPost'] ?? 'No content',
+      namedEntities: json['namedEntities'] ?? 'N/A',
+    );
+  }
 }
 
 class _DashboardPageState extends State<DashboardPage> {
   // State to track the active navigation item
   int _selectedIndex = 0;
+
+  // NEW: State variables to manage data from the API
+  bool _isLoading = true; // Start in loading state
+  String? _errorMessage;
+  List<EmergencyPost> _posts = []; // This will hold our live data
+
+  // NEW: This function runs once when the widget is first created
+  @override
+  void initState() {
+    super.initState();
+    _fetchPosts(); // Call the function to get data from the server
+  }
+
+  // NEW: The function that calls your Python API
+  Future<void> _fetchPosts() async {
+    // Make sure this URL is correct for your deployed API
+    const String postsUrl = 'https://respondner-api.onrender.com/get_mock_posts';
+    final url = Uri.parse(postsUrl);
+
+    // Reset state before fetching
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          // Convert the list of json maps to a list of EmergencyPost objects
+          _posts = data.map((json) => EmergencyPost.fromJson(json)).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load posts (Status code: ${response.statusCode})';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An error occurred. Please check your connection.';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,34 +115,6 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-
-  final List<EmergencyPost> _samplePosts = [
-    EmergencyPost(
-      timestamp: '2025-05-09 13:21',
-      extractedPost: 'Baha na dito sa Marikina, walang tulong!',
-      namedEntities: '[Location: Marikina], [Emergency: baha]',
-    ),
-    EmergencyPost(
-      timestamp: '2025-05-09 12:21',
-      extractedPost: 'Need rescue sa Barangay Bagong Silangan!',
-      namedEntities: '[Location: Bagong Silangan], [Emergency: rescue]',
-    ),
-    EmergencyPost(
-      timestamp: '2025-05-09 12:20',
-      extractedPost: 'Si Lola Fe naiwan sa rooftop ng bahay!',
-      namedEntities: '[Person: Lola Fe], [Emergency: stranded]',
-    ),
-    EmergencyPost(
-      timestamp: '2025-05-09 11:55',
-      extractedPost: 'DSWD and NDRRMC coordinating relief efforts in Cainta.',
-      namedEntities: '[Organization: DSWD], [Organization: NDRRMC], [Location: Cainta], [Emergency: relief efforts]',
-    ),
-    EmergencyPost(
-      timestamp: '2025-05-09 11:30',
-      extractedPost: 'Urgent help needed in Makati. Flash flood reported.',
-      namedEntities: '[Location: Makati], [Emergency: flash flood]',
-    ),
-  ];
 
   void _showSignOutDialog() {
     showDialog(
@@ -364,75 +394,72 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Widget for the data table section
   Widget _buildDataTable() {
-    const headerStyle = TextStyle(
-      fontWeight: FontWeight.bold,
-      fontSize: 14,
-      color: Color(0xFF333333),
-    );
-    const cellStyle = TextStyle(
-      fontSize: 14,
-      color: Color(0xFF333333),
-    );
+    const headerStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF333333));
+    const cellStyle = TextStyle(fontSize: 14, color: Color(0xFF333333));
+
+    Widget buildBody() {
+      if (_isLoading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_errorMessage != null) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        );
+      }
+      if (_posts.isEmpty) {
+        return const Center(child: Text('No posts found.'));
+      }
+      
+      // Use the live '_posts' list from the API instead of '_samplePosts'
+      return ListView.builder(
+        itemCount: _posts.length,
+        itemBuilder: (context, index) {
+          final post = _posts[index];
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: Text(post.timestamp, style: cellStyle)),
+                    Expanded(flex: 2, child: Text(post.extractedPost, style: cellStyle)),
+                    Expanded(flex: 2, child: Text(post.namedEntities, style: cellStyle)),
+                  ],
+                ),
+              ),
+              if (index < _posts.length - 1) const Divider(height: 1, thickness: 1),
+            ],
+          );
+        },
+      );
+    }
 
     return Expanded(
       child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-        ),
+        decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300)),
         child: Column(
           children: [
-            // Table Header
-            Container(
-              color: Colors.grey.shade200, // Lighter header color
+            Container( // The header remains the same
+              color: Colors.grey.shade200,
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               child: const Row(
                 children: [
                   Expanded(child: Text('TIMESTAMP', style: headerStyle)),
-                  Expanded(
-                      flex: 2, child: Text('EXTRACTED POST', style: headerStyle)),
-                  Expanded(
-                      flex: 2, child: Text('NAMED ENTITIES', style: headerStyle)),
+                  Expanded(flex: 2, child: Text('EXTRACTED POST', style: headerStyle)),
+                  Expanded(flex: 2, child: Text('NAMED ENTITIES', style: headerStyle)),
                 ],
               ),
             ),
             const Divider(height: 1, thickness: 1),
-
-            // Table Body - built from the sample data
-            Expanded(
-              child: ListView.builder(
-                itemCount: _samplePosts.length,
-                itemBuilder: (context, index) {
-                  final post = _samplePosts[index];
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(post.timestamp, style: cellStyle),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child:
-                                  Text(post.extractedPost, style: cellStyle),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(post.namedEntities, style: cellStyle),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (index < _samplePosts.length - 1)
-                        const Divider(height: 1, thickness: 1),
-                    ],
-                  );
-                },
-              ),
-            ),
+            Expanded(child: buildBody()), // The body is now dynamic
           ],
         ),
       ),
@@ -445,18 +472,17 @@ class _DashboardPageState extends State<DashboardPage> {
       padding: const EdgeInsets.only(top: 15.0),
       child: Row(
         children: [
-          const Text('Last Update: 1:00pm', style: TextStyle(color: Colors.grey)),
+          // We can update this timestamp later if needed
+          const Text('Last Update: Just now', style: TextStyle(color: Colors.grey)),
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: _fetchPosts, // Calls the API function again
             icon: const Icon(Icons.refresh, color: Colors.white),
             label: const Text('Refresh', style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             ),
           ),
         ],

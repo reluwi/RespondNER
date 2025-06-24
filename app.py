@@ -3,6 +3,7 @@ from flask_cors import CORS
 import psycopg2 
 from psycopg2.extras import DictCursor
 import os
+import pandas as pd 
 
 # Initialize the Flask App
 app = Flask(__name__)
@@ -16,6 +17,54 @@ def get_db_connection():
     """Creates a database connection."""
     conn = psycopg2.connect(DATABASE_URL)
     return conn
+
+# --- NEW MOCK DATA ENDPOINT ---
+@app.route('/get_mock_posts', methods=['GET'])
+def get_mock_posts():
+    """Reads test.csv and returns formatted mock data."""
+    try:
+        # Load the test data from the CSV file
+        df = pd.read_csv('test.csv')
+        
+        # Take the first 15 rows for demonstration
+        sample_df = df.head(15)
+        
+        posts_data = []
+        
+        # Fill any missing values in 'keyword' and 'location' with empty strings
+        sample_df['keyword'] = sample_df['keyword'].fillna('')
+        sample_df['location'] = sample_df['location'].fillna('')
+        
+        # Process each row to match the desired format
+        for index, row in sample_df.iterrows():
+            entities = []
+            
+            # Add location if it exists
+            if row['location']:
+                entities.append(f"[Location: {row['location']}]")
+            
+            # Add emergency type from 'keyword' if it exists
+            if row['keyword']:
+                # The keywords sometimes have '%20' for spaces, let's clean that up
+                emergency_term = row['keyword'].replace('%20', ' ')
+                entities.append(f"[Emergency: {emergency_term}]")
+            
+            # Create the final JSON object for this post
+            post = {
+                # We'll create a fake timestamp for display purposes
+                "timestamp": f"2025-05-09 13:{59 - index}",
+                "extractedPost": row['text'],
+                "namedEntities": ", ".join(entities)
+            }
+            posts_data.append(post)
+            
+        return jsonify(posts_data)
+
+    except FileNotFoundError:
+        return jsonify({"error": "test.csv not found on the server."}), 404
+    except Exception as e:
+        print(f"An error occurred in /get_mock_posts: {e}")
+        return jsonify({"error": "Failed to process mock data."}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
