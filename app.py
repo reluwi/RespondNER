@@ -26,8 +26,12 @@ def get_mock_posts():
         # Load the test data from the CSV file
         df = pd.read_csv('test.csv')
         
-        # Take the first 15 rows for demonstration
-        sample_df = df.head(15)
+        # Take a random sample of 15 rows instead of the first 15.
+        sample_size = 15
+        if len(df) < sample_size:
+            sample_df = df.sample(n=len(df))
+        else:
+            sample_df = df.sample(n=sample_size)
         
         posts_data = []
         
