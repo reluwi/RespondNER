@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final String userEmail;
+  
+  const DashboardPage({super.key, required this.userEmail});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -31,6 +33,8 @@ class EmergencyPost {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  String _username = 'Loading...'; 
+  
   // State to track the active navigation item
   int _selectedIndex = 0;
   bool _isLoading = true; // Start in loading state
@@ -45,6 +49,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+    _fetchUserDetails();
     _fetchPosts(); // Call the function to get data from the server
     _searchController.addListener(_filterPosts); // Add a listener to the search controller to filter posts in real-time
   }
@@ -53,6 +58,30 @@ class _DashboardPageState extends State<DashboardPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Function to fetch user details from the new endpoint
+  Future<void> _fetchUserDetails() async {
+    // Construct the URL with a query parameter
+    final url = Uri.parse('https://respondner-api.onrender.com/get_user_details?email=${widget.userEmail}');
+    
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _username = data['username'];
+        });
+      } else {
+        setState(() {
+          _username = 'Responder'; // Fallback name on error
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _username = 'Responder'; // Fallback name on error
+      });
+    }
   }
 
   void _filterPosts() {
@@ -233,7 +262,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Widget for the user profile display
   Widget _buildUserProfile() {
-    return const Row(
+    return Row(
       children: [
         CircleAvatar(
           radius: 25,
@@ -249,8 +278,8 @@ class _DashboardPageState extends State<DashboardPage> {
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
             Text(
-              'Clyde Lopez',
-              style: TextStyle(
+              _username,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,

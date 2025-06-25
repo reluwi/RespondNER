@@ -69,10 +69,12 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
+          // Get the email that the user typed in
+          final String userEmail = _emailController.text;
           // Navigate to dashboard on successful login
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const DashboardPage()),
+            MaterialPageRoute(builder: (context) => DashboardPage(userEmail: userEmail)),
           );
         } else {
           // Show error dialog if credentials are wrong

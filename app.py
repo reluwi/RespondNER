@@ -18,6 +18,39 @@ def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL)
     return conn
 
+# --- NEW ENDPOINT TO FETCH USER DETAILS ---
+@app.route('/get_user_details', methods=['GET'])
+def get_user_details():
+    """Fetches user details based on the email provided as a query parameter."""
+    # Get the email from the URL query string (e.g., /get_user_details?email=test@example.com)
+    email = request.args.get('email')
+
+    if not email:
+        return jsonify({"error": "Email parameter is required."}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=DictCursor)
+        
+        # Select the username for the given email
+        cursor.execute("SELECT username FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+
+        if user:
+            return jsonify({
+                "username": user['username'] if user['username'] else "User"
+            })
+        else:
+            return jsonify({"error": "User not found."}), 404
+
+    except Exception as e:
+        print(f"Get user details error: {e}")
+        return jsonify({"error": "An internal server error occurred."}), 500
+    finally:
+        if conn:
+            conn.close()
+
 # --- NEW MOCK DATA ENDPOINT ---
 @app.route('/get_mock_posts', methods=['GET'])
 def get_mock_posts():
