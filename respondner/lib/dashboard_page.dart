@@ -123,7 +123,7 @@ class _DashboardPageState extends State<DashboardPage> {
       }
 
       // 3. NEW: Filter by selected location
-      if (_selectedLocation != null) {
+      if (_selectedLocation != null && _selectedLocation != 'All Locations') {
         tempFilteredList = tempFilteredList.where((post) =>
           post.namedEntities.contains('[Location: $_selectedLocation]')
         ).toList();
@@ -199,7 +199,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
           // Set the state for the new location data
           _uniqueLocations = locations.toList()..sort(); // Convert Set to a sorted List
-          _selectedLocation = null; // Reset selected location on new fetch
+          // --- NEW: Add "All Locations" to the very beginning of the list ---
+          _uniqueLocations.insert(0, 'All Locations');
+          _selectedLocation = 'All Locations'; // Reset selected location on new fetch
 
           _startDate = null;
           _endDate = null;
@@ -494,9 +496,13 @@ class _DashboardPageState extends State<DashboardPage> {
           // This is called when the user selects a new item
           onChanged: (String? newValue) {
             setState(() {
-              // We can add a "Clear Filter" option if we want
-              // For now, selecting a new value updates the state.
-              _selectedLocation = newValue;
+              if (newValue == 'All Locations') {
+                // If "All Locations" is selected, set the filter to null
+                _selectedLocation = null;
+              } else {
+                // Otherwise, set it to the selected location
+                _selectedLocation = newValue;
+              }
             });
             // After updating the state, re-apply all filters
             _filterPosts();
