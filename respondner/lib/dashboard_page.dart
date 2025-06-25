@@ -33,22 +33,47 @@ class EmergencyPost {
 class _DashboardPageState extends State<DashboardPage> {
   // State to track the active navigation item
   int _selectedIndex = 0;
-
-  // NEW: State variables to manage data from the API
   bool _isLoading = true; // Start in loading state
   String? _errorMessage;
-  List<EmergencyPost> _posts = []; // This will hold our live data
+  
+  // State for search functionality
+  final _searchController = TextEditingController();
+  List<EmergencyPost> _posts = []; // This will live data
+  List<EmergencyPost> _filteredPosts = []; // This list will be displayed
 
-  // NEW: This function runs once when the widget is first created
+  // This function runs once when the widget is first created
   @override
   void initState() {
     super.initState();
     _fetchPosts(); // Call the function to get data from the server
+    _searchController.addListener(_filterPosts); // Add a listener to the search controller to filter posts in real-time
   }
 
-  // NEW: The function that calls your Python API
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterPosts() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        // If the search bar is empty, show all posts
+        _filteredPosts = _posts;
+      } else {
+        // Otherwise, filter the master list
+        _filteredPosts = _posts.where((post) {
+          final postText = post.extractedPost.toLowerCase();
+          return postText.contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  // The function that calls your Python API
   Future<void> _fetchPosts() async {
-    // Make sure this URL is correct for your deployed API
+    // URL for deployed API
     const String postsUrl = 'https://respondner-api.onrender.com/get_mock_posts';
     final url = Uri.parse(postsUrl);
 
@@ -66,6 +91,7 @@ class _DashboardPageState extends State<DashboardPage> {
         setState(() {
           // Convert the list of json maps to a list of EmergencyPost objects
           _posts = data.map((json) => EmergencyPost.fromJson(json)).toList();
+          _filteredPosts = _posts; // Initialize filtered posts with all posts
           _isLoading = false;
         });
       } else {
@@ -334,6 +360,7 @@ class _DashboardPageState extends State<DashboardPage> {
       width: 200,
       height: 40,
       child: TextField(
+        controller: _searchController, // Connect the controller
         decoration: InputDecoration(
           hintText: 'Search by keyword',
           suffixIcon: const Icon(Icons.search),
@@ -419,9 +446,9 @@ class _DashboardPageState extends State<DashboardPage> {
       
       // Use the live '_posts' list from the API instead of '_samplePosts'
       return ListView.builder(
-        itemCount: _posts.length,
+        itemCount: _filteredPosts.length,
         itemBuilder: (context, index) {
-          final post = _posts[index];
+          final post = _filteredPosts[index];
           return Column(
             children: [
               Padding(
