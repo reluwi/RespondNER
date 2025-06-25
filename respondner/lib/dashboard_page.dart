@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userEmail;
@@ -46,6 +47,14 @@ class _DashboardPageState extends State<DashboardPage> {
   List<EmergencyPost> _posts = []; // This will live data
   List<EmergencyPost> _filteredPosts = []; // This list will be displayed
 
+  // State variables for the date range filter
+  DateTime? _startDate;
+  DateTime? _endDate;
+
+  // State variables for the location filter
+  String? _selectedLocation;
+  List<String> _uniqueLocations = [];
+
   // This function runs once when the widget is first created
   @override
   void initState() {
@@ -84,6 +93,10 @@ class _DashboardPageState extends State<DashboardPage> {
   void _filterPosts() {
     final query = _searchController.text.toLowerCase();
     setState(() {
+      // Start with the full master list of posts
+      List<EmergencyPost> tempFilteredList = _posts;
+
+      // 1. Filter by the search keyword (if any)
       if (query.isEmpty) {
         // If the search bar is empty, show all posts
         _filteredPosts = _posts;
@@ -94,7 +107,55 @@ class _DashboardPageState extends State<DashboardPage> {
           return postText.contains(query);
         }).toList();
       }
+
+      // 2. Filter by the date range (if any)
+      if (_startDate != null && _endDate != null) {
+        tempFilteredList = tempFilteredList.where((post) {
+          // We need to parse the post's timestamp string into a DateTime object
+          try {
+            final postDate = DateTime.parse(post.timestamp);
+            return postDate.isAfter(_startDate!) && postDate.isBefore(_endDate!);
+          } catch (e) {
+            // If the timestamp format is invalid, exclude it from the results
+            return false;
+          }
+        }).toList();
+      }
+
+      // 3. NEW: Filter by selected location
+      if (_selectedLocation != null) {
+        tempFilteredList = tempFilteredList.where((post) =>
+          post.namedEntities.contains('[Location: $_selectedLocation]')
+        ).toList();
+      }
+
+      // Update the final list that is displayed on screen
+      _filteredPosts = tempFilteredList;
+
     });
+  }
+
+  // Function to show the date range picker dialog
+  Future<void> _selectDateRange() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020), // The earliest possible date
+      lastDate: DateTime.now(),   // The latest possible date
+      initialDateRange: _startDate != null && _endDate != null
+          ? DateTimeRange(start: _startDate!, end: _endDate!)
+          : null, // Pre-select the current range if it exists
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = picked.start;
+        // The end date from the picker is the start of the day, so we add a day
+        // to make the range inclusive of the selected end day.
+        _endDate = picked.end.add(const Duration(days: 1));
+      });
+      // After selecting a new date range, re-apply the filters.
+      _filterPosts();
+    }
   }
 
   // The function that calls your Python API
@@ -107,17 +168,41 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _startDate = null;
+      _endDate = null;
     });
 
     try {
       final response = await http.get(url);
-
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        final List<EmergencyPost> fetchedPosts = data.map((json) => EmergencyPost.fromJson(json)).toList();
+
+        // Logic to extract unique, non-empty locations
+        final Set<String> locations = {};
+        for (var post in fetchedPosts) {
+          // A bit of regex to find location entities like [Location: Marikina]
+          final RegExp regex = RegExp(r'\[Location: (.*?)\]');
+          final matches = regex.allMatches(post.namedEntities);
+          for (final match in matches) {
+            final locationName = match.group(1);
+            if (locationName != null && locationName.isNotEmpty) {
+              locations.add(locationName.trim());
+            }
+          }
+        }
+
         setState(() {
           // Convert the list of json maps to a list of EmergencyPost objects
-          _posts = data.map((json) => EmergencyPost.fromJson(json)).toList();
+          _posts = fetchedPosts;
           _filteredPosts = _posts; // Initialize filtered posts with all posts
+
+          // Set the state for the new location data
+          _uniqueLocations = locations.toList()..sort(); // Convert Set to a sorted List
+          _selectedLocation = null; // Reset selected location on new fetch
+
+          _startDate = null;
+          _endDate = null;
           _isLoading = false;
         });
       } else {
@@ -375,10 +460,89 @@ class _DashboardPageState extends State<DashboardPage> {
         // Search & Filter controls
         _buildSearchField(),
         const SizedBox(width: 15),
-        _buildDropdown("Date Range"),
+         _buildDateRangeButton(),
         const SizedBox(width: 15),
-        _buildDropdown("Filter by Location"),
+        _buildLocationDropdown(),
       ],
+    );
+  }
+
+   // You can rename this function for clarity if you like
+  Widget _buildLocationDropdown() {
+    return Container(
+      width: 180,
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          // Show a hint text if no location is selected
+          hint: const Text("Filter by Location", style: TextStyle(color: Colors.black54, fontSize: 14)),
+          // The currently selected value
+          value: _selectedLocation,
+          // The list of items is built from our dynamic _uniqueLocations list
+          items: _uniqueLocations.map((String location) {
+            return DropdownMenuItem<String>(
+              value: location,
+              child: Text(location, overflow: TextOverflow.ellipsis),
+            );
+          }).toList(),
+          // This is called when the user selects a new item
+          onChanged: (String? newValue) {
+            setState(() {
+              // We can add a "Clear Filter" option if we want
+              // For now, selecting a new value updates the state.
+              _selectedLocation = newValue;
+            });
+            // After updating the state, re-apply all filters
+            _filterPosts();
+          },
+        ),
+      ),
+    );
+  }
+
+  // NEW: This widget creates the date range button
+  Widget _buildDateRangeButton() {
+    // Format the date for display, e.g., "Jun 25, 2024"
+    final formatter = DateFormat('MMM d, yyyy');
+    
+    // Determine the text to show on the button
+    String buttonText = "Date Range";
+    if (_startDate != null && _endDate != null) {
+      // Subtract one day from _endDate for display because we added it for logic
+      final displayEndDate = _endDate!.subtract(const Duration(days: 1));
+      buttonText = '${formatter.format(_startDate!)} - ${formatter.format(displayEndDate)}';
+    }
+
+    return InkWell(
+      onTap: _selectDateRange, // Call our function on tap
+      child: Container(
+        width: 180,
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                buttonText,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.black54, fontSize: 14),
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, color: Colors.black54),
+          ],
+        ),
+      ),
     );
   }
 
@@ -397,27 +561,6 @@ class _DashboardPageState extends State<DashboardPage> {
             borderSide: const BorderSide(color: Colors.grey),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-        ),
-      ),
-    );
-  }
-
-  // Reusable widget for dropdown buttons
-  Widget _buildDropdown(String hint) {
-    return Container(
-      width: 180,
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          hint: Text(hint),
-          items: const [], // Add your dropdown items here
-          onChanged: (value) {},
         ),
       ),
     );
