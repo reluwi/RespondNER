@@ -33,13 +33,15 @@ def get_user_details():
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=DictCursor)
         
-        # Select the username for the given email
-        cursor.execute("SELECT username FROM users WHERE email = %s", (email,))
+        # --- Select username AND is_admin ---
+        cursor.execute("SELECT username, is_admin FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
 
         if user:
+            # --- Return both username and is_admin status ---
             return jsonify({
-                "username": user['username'] if user['username'] else "User"
+                "username": user['username'] if user['username'] else "User",
+                "is_admin": user['is_admin']
             })
         else:
             return jsonify({"error": "User not found."}), 404

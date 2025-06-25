@@ -34,6 +34,7 @@ class EmergencyPost {
 
 class _DashboardPageState extends State<DashboardPage> {
   String _username = 'Loading...'; 
+  bool _isAdmin = false;
   
   // State to track the active navigation item
   int _selectedIndex = 0;
@@ -62,27 +63,23 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Function to fetch user details from the new endpoint
   Future<void> _fetchUserDetails() async {
-    // Construct the URL with a query parameter
-    final url = Uri.parse('https://respondner-api.onrender.com/get_user_details?email=${widget.userEmail}');
-    
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          _username = data['username'];
-        });
-      } else {
-        setState(() {
-          _username = 'Responder'; // Fallback name on error
-        });
-      }
-    } catch (e) {
+  final url = Uri.parse('https://respondner-api.onrender.com/get_user_details?email=${widget.userEmail}');
+  
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
       setState(() {
-        _username = 'Responder'; // Fallback name on error
+        _username = data['username'] ?? 'User';
+        _isAdmin = data['is_admin'] ?? false; // Get the admin status
       });
+    } else {
+      setState(() { _username = 'Responder'; _isAdmin = false; });
     }
+  } catch (e) {
+    setState(() { _username = 'Responder'; _isAdmin = false; });
   }
+}
 
   void _filterPosts() {
     final query = _searchController.text.toLowerCase();
@@ -253,8 +250,10 @@ class _DashboardPageState extends State<DashboardPage> {
           _buildNavItem(0, 'Dashboard', primaryRed),
           _buildNavItem(1, 'Summary', primaryRed),
           _buildNavItem(2, 'About us', primaryRed),
+          if (_isAdmin)
+            _buildNavItem(3, 'Accounts', primaryRed),
           const Spacer(), // Pushes Sign Out to the bottom
-          _buildNavItem(3, 'Sign Out', primaryRed),
+          _buildNavItem(4, 'Sign Out', primaryRed),
         ],
       ),
     );
@@ -274,8 +273,8 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Responder',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              _isAdmin ? 'Admin' : 'Responder',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             Text(
               _username,
