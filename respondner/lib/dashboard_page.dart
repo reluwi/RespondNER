@@ -95,31 +95,25 @@ class _DashboardPageState extends State<DashboardPage> {
 
   void _filterPosts() {
     final query = _searchController.text.toLowerCase();
+
     setState(() {
       // Start with the full master list of posts
       List<EmergencyPost> tempFilteredList = _posts;
 
       // 1. Filter by the search keyword (if any)
-      if (query.isEmpty) {
-        // If the search bar is empty, show all posts
-        _filteredPosts = _posts;
-      } else {
-        // Otherwise, filter the master list
-        _filteredPosts = _posts.where((post) {
-          final postText = post.extractedPost.toLowerCase();
-          return postText.contains(query);
-        }).toList();
+      if (query.isNotEmpty) {
+        tempFilteredList = tempFilteredList.where((post) => 
+          post.extractedPost.toLowerCase().contains(query)
+        ).toList();
       }
 
       // 2. Filter by the date range (if any)
       if (_startDate != null && _endDate != null) {
         tempFilteredList = tempFilteredList.where((post) {
-          // We need to parse the post's timestamp string into a DateTime object
           try {
             final postDate = DateTime.parse(post.timestamp);
             return postDate.isAfter(_startDate!) && postDate.isBefore(_endDate!);
           } catch (e) {
-            // If the timestamp format is invalid, exclude it from the results
             return false;
           }
         }).toList();
@@ -134,7 +128,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
       // 4. Filter by selected entity type
       if (_selectedEntity != null) {
-        // We use a case-insensitive check
         final entityQuery = '[${_selectedEntity!.toLowerCase()}:';
         tempFilteredList = tempFilteredList.where((post) => 
           post.namedEntities.toLowerCase().contains(entityQuery)
