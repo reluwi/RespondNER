@@ -135,7 +135,7 @@ class _DashboardPageState extends State<DashboardPage> {
       // 4. Filter by selected entity type
       if (_selectedEntity != null) {
         // We use a case-insensitive check
-        final entityQuery = '[${_selectedEntity!.toLowerCase()}';
+        final entityQuery = '[${_selectedEntity!.toLowerCase()}:';
         tempFilteredList = tempFilteredList.where((post) => 
           post.namedEntities.toLowerCase().contains(entityQuery)
         ).toList();
