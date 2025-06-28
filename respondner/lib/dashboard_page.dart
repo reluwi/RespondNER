@@ -55,6 +55,9 @@ class _DashboardPageState extends State<DashboardPage> {
   String? _selectedLocation;
   List<String> _uniqueLocations = [];
 
+  // State variable for the entity filter buttons
+  String? _selectedEntity;
+
   // This function runs once when the widget is first created
   @override
   void initState() {
@@ -122,10 +125,19 @@ class _DashboardPageState extends State<DashboardPage> {
         }).toList();
       }
 
-      // 3. NEW: Filter by selected location
+      // 3. Filter by selected location
       if (_selectedLocation != null && _selectedLocation != 'All Locations') {
         tempFilteredList = tempFilteredList.where((post) =>
           post.namedEntities.contains('[Location: $_selectedLocation]')
+        ).toList();
+      }
+
+      // 4. Filter by selected entity type
+      if (_selectedEntity != null) {
+        // We use a case-insensitive check
+        final entityQuery = '[${_selectedEntity!.toLowerCase()}';
+        tempFilteredList = tempFilteredList.where((post) => 
+          post.namedEntities.toLowerCase().contains(entityQuery)
         ).toList();
       }
 
@@ -574,6 +586,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Widget for the entity filter chips
   Widget _buildEntityFilters() {
+
+    final List<String> entities = ['Location', 'People', 'Organization', 'Emergency', 'Needs'];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -585,12 +600,54 @@ class _DashboardPageState extends State<DashboardPage> {
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: ['Location', 'People', 'Organization', 'Emergency', 'Needs']
-              .map((label) => OutlinedButton(
-                    onPressed: () {},
-                    child: Text(label),
-                  ))
-              .toList(),
+          children: [
+            // Map over the list to create a button for each entity
+            ...entities.map((entity) {
+              final bool isSelected = _selectedEntity == entity;
+              return ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    // If the user clicks the same button again, clear the filter
+                    if (isSelected) {
+                      _selectedEntity = null;
+                    } else {
+                      _selectedEntity = entity;
+                    }
+                  });
+                  // Re-apply all filters
+                  _filterPosts();
+                },
+                style: ElevatedButton.styleFrom(
+                  // Use a prominent color for the selected button
+                  backgroundColor: isSelected ? const Color(0xFFa61c1c) : Colors.grey[200],
+                  foregroundColor: isSelected ? Colors.white : Colors.black87,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: isSelected ? Colors.transparent : Colors.grey,
+                    ),
+                  ),
+                  elevation: isSelected ? 4 : 0,
+                ),
+                child: Text(entity),
+              );
+            }).toList(),
+            
+            // NEW: A separate button to clear the entity filter
+            // This is only visible if a filter is active
+            if (_selectedEntity != null)
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _selectedEntity = null;
+                  });
+                  _filterPosts();
+                },
+                icon: const Icon(Icons.clear, size: 16),
+                label: const Text("Clear"),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+              ),
+          ],
         ),
       ],
     );
