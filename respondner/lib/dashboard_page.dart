@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
 import 'create_account_popup.dart';
+import 'update_account_popup.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
@@ -445,6 +446,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
             if(_selectedIndex==3) ... [
               _addAccount(),
+              _updateAccount(),
             ]
           ],
         ),
@@ -777,6 +779,37 @@ class _DashboardPageState extends State<DashboardPage> {
       context: context,
       builder: (BuildContext context) {
         return const CreateAccountPopup(); // This returns your popup widget
+      },
+    );
+  }
+
+  Widget _updateAccount() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 15.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center, // Center the single button
+        children: [
+          ElevatedButton( // Changed from ElevatedButton.icon to ElevatedButton
+            onPressed: _updateItem, // Assign the new function
+            // No icon property here, as it's a regular ElevatedButton
+            child: const Text('Update', style: TextStyle(color: Colors.white, fontSize: 16)), // Label text
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2A87DD), // Greenish color (Material Green 500)
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15), // Adjusted padding slightly
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+              elevation: 5, // Add a slight shadow for depth
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _updateItem() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const UpdateAccountPopup(); // This returns your popup widget
       },
     );
   }
