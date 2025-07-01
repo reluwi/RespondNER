@@ -244,16 +244,17 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
                               alignment: Alignment.centerRight, // aligns the button to the right
                               child: OutlinedButton(
                                 onPressed: () {
-                                  _updateAccount(); // Your existing function
 
                                   showDialog(
                                     context: context,
                                     builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        contentPadding: EdgeInsets.zero, // Remove default padding for custom design
-                                        content: Container(
-                                          decoration: const BoxDecoration(
-                                            gradient: LinearGradient(
+                                      return Dialog(
+                                        backgroundColor: Colors.transparent,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(20),
+                                          width: 400,
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
                                               begin: Alignment.topCenter,
                                               end: Alignment.bottomCenter,
                                               colors: [
@@ -262,41 +263,115 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
                                               ],
                                             ),
                                           ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(20.0),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Text(
-                                                  'Account updated successfully.',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  textAlign: TextAlign.center,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text(
+                                                'Are you sure you want to update this?',
+                                                style: TextStyle(
+                                                  fontSize: 25,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
                                                 ),
-                                                const SizedBox(height: 20),
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.end, // Aligns to the right
-                                                  children: [
-                                                    ElevatedButton(
-                                                      style: ElevatedButton.styleFrom(
-                                                        backgroundColor: Colors.transparent,
-                                                        foregroundColor: Colors.white,
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.zero,
-                                                        ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              const SizedBox(height: 10),
+                                              const Text(
+                                                'This action cannot be undone.',
+                                                style: TextStyle(color: Colors.white),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              const SizedBox(height: 20),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      Navigator.of(context).pop(); // No action
+                                                      _updateAccount(); // Your existing function
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (BuildContext context) {
+                                                          return AlertDialog(
+                                                            contentPadding: EdgeInsets.zero, // Remove default padding for custom design
+                                                            content: Container(
+                                                              decoration: const BoxDecoration(
+                                                                gradient: LinearGradient(
+                                                                  begin: Alignment.topCenter,
+                                                                  end: Alignment.bottomCenter,
+                                                                  colors: [
+                                                                    Color(0xFF14426A),
+                                                                    Color(0xFF2782D0),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              child: Padding(
+                                                                padding: const EdgeInsets.all(20.0),
+                                                                child: Column(
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    const Text(
+                                                                      'Changes saved. The account is now up to date.',
+                                                                      style: TextStyle(
+                                                                        color: Colors.white,
+                                                                        fontSize: 18,
+                                                                        fontWeight: FontWeight.bold,
+                                                                      ),
+                                                                      textAlign: TextAlign.center,
+                                                                    ),
+                                                                    const SizedBox(height: 20),
+                                                                    Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.end, // Aligns to the right
+                                                                      children: [
+                                                                        ElevatedButton(
+                                                                          style: ElevatedButton.styleFrom(
+                                                                            backgroundColor: Colors.transparent,
+                                                                            foregroundColor: Colors.white,
+                                                                            shape: RoundedRectangleBorder(
+                                                                              borderRadius: BorderRadius.zero,
+                                                                            ),
+                                                                          ),
+                                                                          onPressed: () {
+                                                                            Navigator.of(context).pop(); // Close the dialog
+                                                                          },
+                                                                          child: const Text('Okay'),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.transparent,
+                                                      foregroundColor: Colors.white,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.zero,
                                                       ),
-                                                      onPressed: () {
-                                                        Navigator.of(context).pop(); // Close the dialog
-                                                      },
-                                                      child: const Text('Okay'),
                                                     ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
+                                                    child: const Text('Yes', style: TextStyle(color: Colors.white)),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      Navigator.of(context).pop(); // Yes action
+                                                    },
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.transparent,
+                                                      foregroundColor: Colors.white,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.zero,
+                                                      ),
+                                                    ),
+                                                    child: const Text('No', style: TextStyle(color: Colors.white)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );
