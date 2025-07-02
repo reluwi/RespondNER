@@ -152,7 +152,7 @@ def get_all_users():
         
         # Note: We are selecting 'is_admin' to determine the account type.
         # We are NOT selecting the password. Never send passwords to the client.
-        query = "SELECT id, email, username, is_admin FROM users ORDER BY id ASC"
+        query = "SELECT id, email, username, is_admin, agency_name FROM users ORDER BY id ASC"
         cursor.execute(query)
         users = cursor.fetchall()
 
@@ -162,7 +162,7 @@ def get_all_users():
             accounts_list.append({
                 "id": user['id'],
                 "accountType": "Admin" if user['is_admin'] else "Responder",
-                "agencyName": "N/A",  # We don't have this column yet, so we'll hard-code it
+                "agencyName": user['agency_name'] if user['agency_name'] else "N/A",
                 "email": user['email'],
                 "name": user['username'],
                 "password": "••••••••" # Send a fake password string for display purposes
