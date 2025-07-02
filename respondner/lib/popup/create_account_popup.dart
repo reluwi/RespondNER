@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class CreateAccountPopup extends StatefulWidget {
-  const CreateAccountPopup({Key? key}) : super(key: key);
+  // Callback to tell the parent page to refresh its list
+  final VoidCallback onAccountCreated;
+  
+  const CreateAccountPopup({super.key, required this.onAccountCreated});
 
   @override
   State<CreateAccountPopup> createState() => _CreateAccountPopupState();
@@ -12,12 +17,14 @@ class _CreateAccountPopupState extends State<CreateAccountPopup> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _selectedAgency;
+  bool _isLoading = false;
   
   final List<String> _agencies = [
     'National Disaster Response Force',
     'State Disaster Response Force',
     'Local Fire Department',
     'Regional Medical Services',
+    'N/A',
   ];
 
   @override
@@ -27,6 +34,122 @@ class _CreateAccountPopupState extends State<CreateAccountPopup> {
     _passwordController.dispose();
     super.dispose();
   }
+
+  // --- The function to call the API and create the account ---
+  Future<void> _createAccount() async {
+    // Basic validation
+    if (_nameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _selectedAgency == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (!_emailController.text.contains('@')) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    const String addUrl = 'https://respondner-api.onrender.com/add_user';
+    final url = Uri.parse(addUrl);
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': _nameController.text,
+          'email': _emailController.text,
+          'password': _passwordController.text,
+          'agency_name': _selectedAgency,
+          'is_admin': false // For this popup, we default to creating Responders
+        }),
+      );
+
+      if (!mounted) return;
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 201) { // 201 Created successfully
+        // Close the main popup first
+        Navigator.of(context).pop(); 
+        // Then show the success dialog
+        _showSuccessDialog(context);
+        // Finally, trigger the refresh on the parent page
+        widget.onAccountCreated();
+      } else {
+        // Show error message from the API
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Failed to create account.'), backgroundColor: Colors.red),
+        );
+      }
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred. Please try again.'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // A helper function for the success dialog
+  void _showSuccessDialog(BuildContext parentContext) {
+  showDialog(
+    // Use the passed-in context, which is safe
+    context: parentContext,
+    builder: (BuildContext dialogContext) { // 'dialogContext' is the context for the dialog itself
+      return AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF14426A), Color(0xFF2782D0)],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'New account added successfully.',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        side: const BorderSide(color: Colors.white),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(), // Use the dialog's context to close it
+                    child: const Text('Okay', style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -249,86 +372,24 @@ class _CreateAccountPopupState extends State<CreateAccountPopup> {
                             
                             // Create Account Button
                             Align(
-                              alignment: Alignment.centerRight, // aligns the button to the right
+                              alignment: Alignment.centerRight,
                               child: OutlinedButton(
-                                onPressed: () {
-                                  _createAccount(); // Your existing function
-
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        contentPadding: EdgeInsets.zero, // Remove default padding for custom design
-                                        content: Container(
-                                          decoration: const BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                              colors: [
-                                                Color(0xFF14426A),
-                                                Color(0xFF2782D0),
-                                              ],
-                                            ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(20.0),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Text(
-                                                  'New account added successfully.',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                                const SizedBox(height: 20),
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.end, // Aligns to the right
-                                                  children: [
-                                                    ElevatedButton(
-                                                      style: ElevatedButton.styleFrom(
-                                                        backgroundColor: Colors.transparent,
-                                                        foregroundColor: Colors.white,
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.zero,
-                                                        ),
-                                                      ),
-                                                      onPressed: () {
-                                                        Navigator.of(context).pop(); // Close the dialog
-                                                      },
-                                                      child: const Text('Okay'),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
+                                // If loading, the button is disabled. Otherwise, it calls _createAccount
+                                onPressed: _isLoading ? null : _createAccount,
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(color: Colors.white, width: 2),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                 ),
-                                child: const Text(
-                                  'Create new account!',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24, height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : const Text(
+                                      'Create new account!',
+                                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                    ),
                               ),
                             ),
                             
@@ -407,59 +468,6 @@ class _CreateAccountPopupState extends State<CreateAccountPopup> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _createAccount() {
-    // Validate fields
-    if (_nameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _selectedAgency == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all fields'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Handle account creation logic here
-    print('Creating account for: ${_nameController.text}');
-    print('Email: ${_emailController.text}');
-    print('Agency: $_selectedAgency');
-    
-    // Close the dialog
-    Navigator.of(context).pop({
-      'name': _nameController.text,
-      'email': _emailController.text,
-      'agency': _selectedAgency,
-    });
-  }
-}
-
-// Usage example:
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Demo')),
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return const CreateAccountPopup();
-                },
-              );
-            },
-            child: const Text('Show Create Account Popup'),
-          ),
         ),
       ),
     );

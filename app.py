@@ -176,6 +176,52 @@ def get_all_users():
     finally:
         if conn:
             conn.close()
+    
+# --- NEW ENDPOINT TO ADD A USER ---
+@app.route('/add_user', methods=['POST'])
+def add_user():
+    """Adds a new user to the database."""
+    conn = None
+    try:
+        # Get the data from the request body
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        username = data.get('username')
+        agency_name = data.get('agency_name')
+        is_admin = data.get('is_admin', False) # Default to not admin
+
+        # Basic validation
+        if not all([email, password, username, agency_name]):
+            return jsonify({"success": False, "message": "All fields are required."}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if email already exists
+        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+        if cursor.fetchone():
+            return jsonify({"success": False, "message": "An account with this email already exists."}), 409
+
+        # Insert the new user
+        query = """
+            INSERT INTO users (email, password, username, agency_name, is_admin)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (email, password, username, agency_name, is_admin))
+        conn.commit() # Commit the transaction to save the changes
+
+        return jsonify({"success": True, "message": "User added successfully."}), 201
+
+    except Exception as e:
+        # Rollback in case of error
+        if conn:
+            conn.rollback()
+        print(f"Add user error: {e}")
+        return jsonify({"success": False, "message": "An internal server error occurred."}), 500
+    finally:
+        if conn:
+            conn.close()
 
 # This allows you to run the app by executing `python app.py`
 if __name__ == '__main__':

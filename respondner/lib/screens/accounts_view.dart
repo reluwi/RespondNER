@@ -109,9 +109,10 @@ class _AccountsViewState extends State<AccountsView> {
 
   void _addNewItem() {
     showDialog(
+      barrierDismissible: false, 
       context: context,
       builder: (BuildContext context) {
-        return const CreateAccountPopup(); // This returns your popup widget
+        return CreateAccountPopup(onAccountCreated: _fetchAccounts); // This returns your popup widget
       },
     );
   }
