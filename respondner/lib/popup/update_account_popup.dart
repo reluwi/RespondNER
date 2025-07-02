@@ -72,6 +72,7 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
           'username': _nameController.text,
           'email': _emailController.text,
           'agency_name': _selectedAgency,
+          'password': _passwordController.text,
         }),
       );
 
