@@ -223,6 +223,43 @@ def add_user():
         if conn:
             conn.close()
 
+# --- NEW ENDPOINT TO DELETE USERS ---
+@app.route('/delete_users', methods=['DELETE']) # Using the correct DELETE verb
+def delete_users():
+    """Deletes users based on a list of IDs."""
+    conn = None
+    try:
+        data = request.get_json()
+        ids_to_delete = data.get('ids')
+
+        if not ids_to_delete or not isinstance(ids_to_delete, list):
+            return jsonify({"success": False, "message": "A list of user IDs is required."}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # The 'ANY' operator is an efficient way to check against a list in PostgreSQL
+        query = "DELETE FROM users WHERE id = ANY(%s)"
+        # We pass the list of IDs as a tuple to the query to prevent SQL injection
+        cursor.execute(query, (ids_to_delete,))
+        
+        rows_deleted = cursor.rowcount # Get the number of rows affected
+        conn.commit() # Commit the transaction to save the changes
+
+        return jsonify({
+            "success": True, 
+            "message": f"{rows_deleted} account(s) deleted successfully."
+        }), 200
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Delete users error: {e}")
+        return jsonify({"success": False, "message": "An internal server error occurred."}), 500
+    finally:
+        if conn:
+            conn.close()
+
 # This allows you to run the app by executing `python app.py`
 if __name__ == '__main__':
     # host='0.0.0.0' makes the server accessible from your network
