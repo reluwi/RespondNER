@@ -450,48 +450,20 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
                             flex: 1,
                             child: Center(
                               child: Container(
-                                width: 80,
-                                height: 80,
+                                width: 250,
+                                height: 100,
                                 decoration: BoxDecoration(
-                                  color: Colors.red.shade600,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.zero,
                                 ),
-                                child: const Icon(
-                                  Icons.emergency,
-                                  color: Colors.white,
-                                  size: 40,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.zero,
+                                  child: Image.asset(
+                                    '../../assets/respondnerlogo.png', // Replace with your image path
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.center,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          
-                          // Second Column - Text in two rows
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // First Row - "Responder"
-                                const Text(
-                                  'Responder',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                
-                                // Second Row - "NER"
-                                Text(
-                                  'NER',
-                                  style: TextStyle(
-                                    color: Colors.red.shade600,
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ],
