@@ -62,9 +62,16 @@ def get_mock_posts():
         # Load the test data from the CSV file
         df = pd.read_csv('tweets.csv')
         
-        # Take a random sample to make the refresh button work
-        sample_df = df.sample(n=len(df)).head(15)
-
+        # 1. Convert the 'Date' column to actual datetime objects for proper sorting.
+        df['datetime_obj'] = pd.to_datetime(df['Date'], errors='coerce')
+        # 2. Drop any rows where the date could not be parsed.
+        df.dropna(subset=['datetime_obj'], inplace=True)
+        # 3. Sort the entire DataFrame by the new datetime column, latest first.
+        df.sort_values(by='datetime_obj', ascending=False, inplace=True)
+        # 4. Take the top 15 most recent posts.
+        sample_df = df.head(15)
+ 
+        
         # Fill any empty cells (NaN) with empty strings to prevent errors
         sample_df = sample_df.fillna('')
         
@@ -74,16 +81,7 @@ def get_mock_posts():
         for index, row in sample_df.iterrows():
             entities = []
 
-            formatted_timestamp = 'N/A'
-            try:
-                # 1. Parse the complex date string from the CSV
-                #    Format: Sat Jun 28 07:53:20 +0000 2025 -> %a %b %d %H:%M:%S %z %Y
-                original_date = datetime.strptime(row['Date'], '%a %b %d %H:%M:%S %z %Y')
-                # 2. Format it into a simple string that Dart understands
-                formatted_timestamp = original_date.strftime('%Y-%m-%d %H:%M')
-            except ValueError:
-                # If parsing fails for any reason, keep it as 'N/A'
-                print(f"Could not parse date: {row['Date']}")
+            formatted_timestamp = row['datetime_obj'].strftime('%Y-%m-%d %H:%M')
 
             # 2. Check each new entity column and build the string
             if row['Location']:
