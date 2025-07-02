@@ -4,6 +4,7 @@ import psycopg2
 from psycopg2.extras import DictCursor
 import os
 import pandas as pd 
+from datetime import datetime
 
 # Initialize the Flask App
 app = Flask(__name__)
@@ -72,7 +73,18 @@ def get_mock_posts():
         # Process each row to match the desired format
         for index, row in sample_df.iterrows():
             entities = []
-            
+
+            formatted_timestamp = 'N/A'
+            try:
+                # 1. Parse the complex date string from the CSV
+                #    Format: Sat Jun 28 07:53:20 +0000 2025 -> %a %b %d %H:%M:%S %z %Y
+                original_date = datetime.strptime(row['Date'], '%a %b %d %H:%M:%S %z %Y')
+                # 2. Format it into a simple string that Dart understands
+                formatted_timestamp = original_date.strftime('%Y-%m-%d %H:%M')
+            except ValueError:
+                # If parsing fails for any reason, keep it as 'N/A'
+                print(f"Could not parse date: {row['Date']}")
+
             # 2. Check each new entity column and build the string
             if row['Location']:
                 entities.append(f"[Location: {row['Location']}]")
@@ -107,7 +119,7 @@ def get_mock_posts():
 
             # 3. Create the final JSON object using the new column names
             post = {
-                "timestamp": row['Date'], # Using the 'Date' column
+                "timestamp": formatted_timestamp, # Using the 'Date' column
                 "extractedPost": row['Text Content'], # Using the 'Text Content' column
                 "namedEntities": ", ".join(entities) if entities else "No entities found"
             }
