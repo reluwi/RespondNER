@@ -59,48 +59,64 @@ def get_mock_posts():
     """Reads test.csv and returns formatted mock data."""
     try:
         # Load the test data from the CSV file
-        df = pd.read_csv('test.csv')
+        df = pd.read_csv('tweets.csv')
         
-        # Take a random sample of 15 rows instead of the first 15.
-        sample_size = 15
-        if len(df) < sample_size:
-            sample_df = df.sample(n=len(df))
-        else:
-            sample_df = df.sample(n=sample_size)
+        # Take a random sample to make the refresh button work
+        sample_df = df.sample(n=len(df)).head(15)
+
+        # Fill any empty cells (NaN) with empty strings to prevent errors
+        sample_df = sample_df.fillna('')
         
         posts_data = []
-        
-        # Fill any missing values in 'keyword' and 'location' with empty strings
-        sample_df['keyword'] = sample_df['keyword'].fillna('')
-        sample_df['location'] = sample_df['location'].fillna('')
         
         # Process each row to match the desired format
         for index, row in sample_df.iterrows():
             entities = []
             
-            # Add location if it exists
-            if row['location']:
-                entities.append(f"[Location: {row['location']}]")
+            # 2. Check each new entity column and build the string
+            if row['Location']:
+                entities.append(f"[Location: {row['Location']}]")
             
-            # Add emergency type from 'keyword' if it exists
-            if row['keyword']:
-                # The keywords sometimes have '%20' for spaces, let's clean that up
-                emergency_term = row['keyword'].replace('%20', ' ')
-                entities.append(f"[Emergency: {emergency_term}]")
+            if row['People']:
+                # Handle multiple people separated by commas
+                people = row['People'].split(',')
+                for person in people:
+                    if person.strip():
+                        entities.append(f"[People: {person.strip()}]")
+
+            if row['Organization']:
+                # Handle multiple organizations separated by commas
+                orgs = row['Organization'].split(',')
+                for org in orgs:
+                    if org.strip():
+                        entities.append(f"[Organization: {org.strip()}]")
+
+            if row['Emergency Terms']:
+                 # Handle multiple terms separated by commas
+                terms = row['Emergency Terms'].split(',')
+                for term in terms:
+                    if term.strip():
+                        entities.append(f"[Emergency: {term.strip()}]")
             
-            # Create the final JSON object for this post
+            if row['Resources Needed']:
+                # Handle multiple needs separated by commas
+                needs = row['Resources Needed'].split(',')
+                for need in needs:
+                    if need.strip():
+                        entities.append(f"[Needs: {need.strip()}]")
+
+            # 3. Create the final JSON object using the new column names
             post = {
-                # We'll create a fake timestamp for display purposes
-                "timestamp": f"2025-05-09 13:{59 - index}",
-                "extractedPost": row['text'],
-                "namedEntities": ", ".join(entities)
+                "timestamp": row['Date'], # Using the 'Date' column
+                "extractedPost": row['Text Content'], # Using the 'Text Content' column
+                "namedEntities": ", ".join(entities) if entities else "No entities found"
             }
             posts_data.append(post)
             
         return jsonify(posts_data)
 
     except FileNotFoundError:
-        return jsonify({"error": "test.csv not found on the server."}), 404
+        return jsonify({"error": "tweets.csv not found on the server."}), 404
     except Exception as e:
         print(f"An error occurred in /get_mock_posts: {e}")
         return jsonify({"error": "Failed to process mock data."}), 500
