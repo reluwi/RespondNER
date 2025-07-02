@@ -37,6 +37,16 @@ class _DashboardViewState extends State<DashboardView> {
     super.dispose();
   }
 
+  // NEW: A function to clear the date filter
+  void _clearDateFilter() {
+    setState(() {
+      _startDate = null;
+      _endDate = null;
+    });
+    // After clearing the dates, re-apply all other active filters
+    _filterPosts();
+  }
+
   // The function that calls your Python API
   Future<void> _fetchPosts() async {
     // URL for deployed API
@@ -214,6 +224,17 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
                 const SizedBox(width: 16),
                 _buildDateRangeButton(),
+                // --- The conditional "Clear" button ---
+                // It only appears if a date range is selected
+                if (_startDate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.redAccent),
+                      tooltip: 'Clear Date Filter',
+                      onPressed: _clearDateFilter,
+                    ),
+                  ),
                 const SizedBox(width: 16),
                 _buildLocationDropdown(),
               ],
