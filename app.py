@@ -60,7 +60,7 @@ def get_mock_posts():
     """Reads test.csv and returns formatted mock data."""
     try:
         # Load the test data from the CSV file
-        df = pd.read_csv('tweets.csv')
+        df = pd.read_csv('updated_tweets.csv')
         
         # 1. Convert the 'Date' column to actual datetime objects for proper sorting.
         df['datetime_obj'] = pd.to_datetime(df['Date'], errors='coerce')
