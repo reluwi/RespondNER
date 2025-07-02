@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/account.dart';
 import '../popup/create_account_popup.dart';
 import '../popup/update_account_popup.dart';
@@ -19,6 +21,7 @@ class _AccountsViewState extends State<AccountsView> {
   List<Account> _filteredAccounts = [];
   final Set<int> _selectedAccountIds = {};
   bool _isSelectAll = false;
+  bool _isAccountsLoading = true;
 
   @override
   void initState() {
@@ -33,17 +36,36 @@ class _AccountsViewState extends State<AccountsView> {
     super.dispose();
   }
 
-  void _fetchAccounts() {
-    // TODO: This should call your API in the future
-    setState(() {
-      _allAccounts = [
-        Account(id: 1, accountType: 'Admin', agencyName: 'N/A', email: 'test@example.com', name: 'Clyde Lopez', password: '••••••••'),
-        Account(id: 2, accountType: 'Responder', agencyName: 'Agency 1', email: 'responder@example.com', name: 'Alex Ray', password: '••••••••'),
-        Account(id: 3, accountType: 'Responder', agencyName: 'Agency 2', email: 'jane.d@example.com', name: 'Jane Doe', password: '••••••••'),
-      ];
-      _filteredAccounts = _allAccounts;
-    });
+  Future<void> _fetchAccounts() async {
+  setState(() => _isAccountsLoading = true);
+
+  const String accountsUrl = 'https://respondner-api.onrender.com/get_all_users';
+  final url = Uri.parse(accountsUrl);
+
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      setState(() {
+        _allAccounts = data.map((json) => Account.fromJson(json)).toList();
+        _filteredAccounts = _allAccounts; // Initialize filtered list
+        _isAccountsLoading = false;
+      });
+    } else {
+      // Handle server errors
+      setState(() => _isAccountsLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to fetch accounts."), backgroundColor: Colors.red)
+      );
+    }
+  } catch (e) {
+    // Handle network errors
+    setState(() => _isAccountsLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("An error occurred."), backgroundColor: Colors.red)
+    );
   }
+}
 
   void _filterAccounts() {
     final query = _searchController.text.toLowerCase();
@@ -202,6 +224,10 @@ class _AccountsViewState extends State<AccountsView> {
   }
 
   Widget _buildAccountsTable() {
+    if (_isAccountsLoading) {
+    return const Center(child: CircularProgressIndicator());
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: SingleChildScrollView(

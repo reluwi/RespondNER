@@ -14,4 +14,15 @@ class Account {
     required this.name,
     required this.password,
   });
+
+  factory Account.fromJson(Map<String, dynamic> json) {
+    return Account(
+      id: json['id'] ?? 0,
+      accountType: json['accountType'] ?? 'N/A',
+      agencyName: json['agencyName'] ?? 'N/A',
+      email: json['email'] ?? 'No Email',
+      name: json['name'] ?? 'No Name',
+      password: json['password'] ?? '••••••••',
+    );
+  }
 }

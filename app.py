@@ -141,6 +141,42 @@ def login():
         if conn:
             conn.close()
 
+# --- NEW ENDPOINT TO FETCH ALL USER ACCOUNTS ---
+@app.route('/get_all_users', methods=['GET'])
+def get_all_users():
+    """Fetches a list of all users from the database."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=DictCursor)
+        
+        # Note: We are selecting 'is_admin' to determine the account type.
+        # We are NOT selecting the password. Never send passwords to the client.
+        query = "SELECT id, email, username, is_admin FROM users ORDER BY id ASC"
+        cursor.execute(query)
+        users = cursor.fetchall()
+
+        # Convert the database rows into a list of JSON objects
+        accounts_list = []
+        for user in users:
+            accounts_list.append({
+                "id": user['id'],
+                "accountType": "Admin" if user['is_admin'] else "Responder",
+                "agencyName": "N/A",  # We don't have this column yet, so we'll hard-code it
+                "email": user['email'],
+                "name": user['username'],
+                "password": "••••••••" # Send a fake password string for display purposes
+            })
+        
+        return jsonify(accounts_list)
+
+    except Exception as e:
+        print(f"Get all users error: {e}")
+        return jsonify({"error": "An internal server error occurred."}), 500
+    finally:
+        if conn:
+            conn.close()
+
 # This allows you to run the app by executing `python app.py`
 if __name__ == '__main__':
     # host='0.0.0.0' makes the server accessible from your network
