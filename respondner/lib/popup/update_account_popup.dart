@@ -450,8 +450,8 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
                             flex: 1,
                             child: Center(
                               child: Container(
-                                width: 250,
-                                height: 100,
+                                width: 300,
+                                height: 90,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.zero,
                                 ),
