@@ -6,7 +6,7 @@ import 'main.dart';
 // Import your new, separated components
 import 'screens/dashboard_view.dart';
 import 'screens/accounts_view.dart';
-//import 'screens/summary_view.dart'; 
+import 'screens/summary_view.dart'; 
 //import 'screens/about_us_view.dart';
 import 'widgets/side_menu.dart';
 
@@ -130,12 +130,7 @@ class _DashboardPageState extends State<DashboardPage> {
       
       case 1:
         // Return a placeholder widget for the Summary page
-        return const Center(
-          child: Text(
-            'Summary Page - Coming Soon',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        );
+        return const SummaryView();
 
       case 2:
         // Return a placeholder widget for the About Us page
