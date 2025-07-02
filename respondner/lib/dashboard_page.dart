@@ -7,7 +7,7 @@ import 'main.dart';
 import 'screens/dashboard_view.dart';
 import 'screens/accounts_view.dart';
 import 'screens/summary_view.dart'; 
-//import 'screens/about_us_view.dart';
+import 'screens/about_us_view.dart';
 import 'widgets/side_menu.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -134,12 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
       case 2:
         // Return a placeholder widget for the About Us page
-        return const Center(
-          child: Text(
-            'About Us Page - Coming Soon',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        );
+        return const AboutUs();
 
       case 3:
         // This logic is correct: only show AccountsView if the user is an admin
