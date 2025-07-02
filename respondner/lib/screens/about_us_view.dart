@@ -37,24 +37,19 @@ class _AboutUsState extends State<AboutUs> {
 
   Widget _buildAboutUsParagraph() {
     return const Padding(
-      padding: EdgeInsets.all(16.0), // Add some padding around the text
+      padding: EdgeInsets.all(64.0), // Add some padding around the text
       child: Text(
-        '''We are a group of 3rd year Computer Science students from the Polytechnic University of the Philippines with 
-        one shared purpose: to help improve disaster response through technology that understands how Filipinos communicate 
-        online. 
-        During disasters, people turn to social media to ask for help, share their location, and report urgent needs. 
-        These messages are often written in Taglish, blending Tagalog and English, along with slang, emojis, and abbreviations. 
-        Traditional systems struggle to understand this type of language, which creates delays in getting the right help to the 
-        right people.
-        We built a system that uses Artificial Intelligence and Named Entity Recognition (NER) to process Taglish disaster-related 
-        posts. It identifies names, places, organizations, and emergency-related terms in real time, transforming unstructured 
-        content into clear, usable data for emergency teams.
-        This project is designed to support responders, local government units, NGOs, and analysts by highlighting the most important 
-        information when it’s needed most. Our platform helps reduce information overload and brings structure to the chaos of social 
-        media during crises. We combined our skills and ideas to build a system that listens to real people in real time. What started 
-        as a university project became something we hope will make a difference.''',
+        '''   
+            
+            We are a group of 3rd year Computer Science students from the Polytechnic University of the Philippines with one shared purpose: to help improve disaster response through technology that understands how Filipinos communicate online. 
+        
+            During disasters, people turn to social media to ask for help, share their location, and report urgent needs. These messages are often written in Taglish, blending Tagalog and English, along with slang, emojis, and abbreviations. Traditional systems struggle to understand this type of language, which creates delays in getting the right help to the right people.
+        
+            We built a system that uses Artificial Intelligence and Named Entity Recognition (NER) to process Taglish disaster-related posts. It identifies names, places, organizations, and emergency-related terms in real time, transforming unstructured content into clear, usable data for emergency teams. 
+        
+            This project is designed to support responders, local government units, NGOs, and analysts by highlighting the most important information when it’s needed most. Our platform helps reduce information overload and brings structure to the chaos of social media during crises. We combined our skills and ideas to build a system that listens to real people in real time. What started as a university project became something we hope will make a difference.''',
         textAlign: TextAlign.justify,
-        style: TextStyle(fontSize: 16.0, color: Colors.black87),
+        style: TextStyle(fontSize: 20, color: Colors.black87),
       ),
     );
   }
