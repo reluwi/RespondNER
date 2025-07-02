@@ -384,7 +384,7 @@ class _CreateAccountPopupState extends State<CreateAccountPopup> {
                             child: Center(
                               child: Container(
                                 width: 300,
-                                height: 100,
+                                height: 90,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.zero,
                                 ),

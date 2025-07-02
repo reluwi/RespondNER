@@ -81,21 +81,28 @@ class _AccountsViewState extends State<AccountsView> {
   void _deleteSelectedItems() {
     if (_selectedAccountIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No accounts selected for deletion."), backgroundColor: Colors.orange)
+        const SnackBar(
+          content: Text("No accounts selected for deletion."), 
+          backgroundColor: Colors.orange
+        )
       );
       return;
     }
-    // TODO: Show a confirmation dialog. If confirmed, call an API endpoint:
-    // POST /delete_users with a body like { "ids": [1, 3] }
-    // After success, call _fetchAccounts() to refresh the list.
-    // print("Deleting account IDs: $_selectedAccountIds");
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text("Delete functionality to be implemented."), backgroundColor: Colors.blue)
-    //   );
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return const DeleteAccountPopup(); // This returns your popup widget
+        return DeleteAccountPopup(
+          selectedAccountIds: _selectedAccountIds,
+          onDeleteSuccess: () {
+            // Clear selections and refresh the accounts list
+            setState(() {
+              _selectedAccountIds.clear();
+              _isSelectAll = false;
+            });
+            _fetchAccounts(); // Refresh the accounts list
+          },
+        );
       },
     );
   }
