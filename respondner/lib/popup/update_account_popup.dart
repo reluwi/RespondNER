@@ -1,24 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../models/account.dart';
 
 class UpdateAccountPopup extends StatefulWidget {
-  const UpdateAccountPopup({Key? key}) : super(key: key);
+  // It now requires the account to be updated and a success callback
+  final Account accountToUpdate;
+  final VoidCallback onAccountUpdated;
+  
+  const UpdateAccountPopup({
+    super.key, 
+    required this.accountToUpdate,
+    required this.onAccountUpdated,
+  });
 
   @override
   State<UpdateAccountPopup> createState() => _UpdateAccountPopupState();
 }
 
 class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
+  // Your existing controllers
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _selectedAgency;
-  
+  bool _isLoading = false;
+
   final List<String> _agencies = [
-    'National Disaster Response Force',
-    'State Disaster Response Force',
-    'Local Fire Department',
-    'Regional Medical Services',
+    'National Disaster Response Force', 'State Disaster Response Force',
+    'Local Fire Department', 'Regional Medical Services', 'N/A',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill the form fields with the existing account data
+    _nameController.text = widget.accountToUpdate.name;
+    _emailController.text = widget.accountToUpdate.email;
+    _passwordController.text = widget.accountToUpdate.password;
+    
+    // Ensure the agency exists in the list before setting it
+    if (_agencies.contains(widget.accountToUpdate.agencyName)) {
+      _selectedAgency = widget.accountToUpdate.agencyName;
+    }
+  }
 
   @override
   void dispose() {
@@ -26,6 +51,119 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // The function to call the update API
+  Future<void> _updateAccount() async {
+    final currentContext = context;
+    if (!mounted) return;
+
+    setState(() => _isLoading = true);
+    
+    // Construct the URL with the user's ID
+    final String updateUrl = 'https://respondner-api.onrender.com/update_user/${widget.accountToUpdate.id}';
+    final url = Uri.parse(updateUrl);
+
+    try {
+      final response = await http.put( // Using http.put
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': _nameController.text,
+          'email': _emailController.text,
+          'agency_name': _selectedAgency,
+        }),
+      );
+
+      if (!mounted) return;
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        Navigator.of(currentContext).pop(); // Close the popup
+        _showSuccessDialog(currentContext, data['message']);
+        widget.onAccountUpdated(); // Refresh the list on the parent page
+      } else {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Failed to update account.'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(currentContext).showSnackBar(const SnackBar(content: Text('An error occurred.'), backgroundColor: Colors.red));
+    } finally {
+      if(mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirm Update'),
+          content: const Text('Are you sure you want to save these changes?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('No')),
+            ElevatedButton(onPressed: () { 
+              Navigator.of(dialogContext).pop();
+              _updateAccount(); 
+            }, child: const Text('Yes')),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog(BuildContext parentContext, String message) {
+    showDialog(
+      context: parentContext,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF14426A), Color(0xFF2782D0)],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    message, // Use the dynamic message from the API
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: Colors.white),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(dialogContext).pop(), // Close this success dialog
+                      child: const Text('Okay', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -241,164 +379,28 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
                             
                             // Update Account Button
                             Align(
-                              alignment: Alignment.centerRight, // aligns the button to the right
+                              alignment: Alignment.centerRight,
                               child: OutlinedButton(
-                                onPressed: () {
-
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return Dialog(
-                                        backgroundColor: Colors.transparent,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(20),
-                                          width: 400,
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                              colors: [
-                                                Color(0xFF14426A),
-                                                Color(0xFF2782D0),
-                                              ],
-                                            ),
-                                          ),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Text(
-                                                'Are you sure you want to update this?',
-                                                style: TextStyle(
-                                                  fontSize: 25,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              const SizedBox(height: 10),
-                                              const Text(
-                                                'This action cannot be undone.',
-                                                style: TextStyle(color: Colors.white),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              const SizedBox(height: 20),
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.of(context).pop(); // No action
-                                                      _updateAccount(); // Your existing function
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (BuildContext context) {
-                                                          return AlertDialog(
-                                                            contentPadding: EdgeInsets.zero, // Remove default padding for custom design
-                                                            content: Container(
-                                                              decoration: const BoxDecoration(
-                                                                gradient: LinearGradient(
-                                                                  begin: Alignment.topCenter,
-                                                                  end: Alignment.bottomCenter,
-                                                                  colors: [
-                                                                    Color(0xFF14426A),
-                                                                    Color(0xFF2782D0),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                              child: Padding(
-                                                                padding: const EdgeInsets.all(20.0),
-                                                                child: Column(
-                                                                  mainAxisSize: MainAxisSize.min,
-                                                                  children: [
-                                                                    const Text(
-                                                                      'Changes saved. The account is now up to date.',
-                                                                      style: TextStyle(
-                                                                        color: Colors.white,
-                                                                        fontSize: 18,
-                                                                        fontWeight: FontWeight.bold,
-                                                                      ),
-                                                                      textAlign: TextAlign.center,
-                                                                    ),
-                                                                    const SizedBox(height: 20),
-                                                                    Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.end, // Aligns to the right
-                                                                      children: [
-                                                                        ElevatedButton(
-                                                                          style: ElevatedButton.styleFrom(
-                                                                            backgroundColor: Colors.transparent,
-                                                                            foregroundColor: Colors.white,
-                                                                            shape: RoundedRectangleBorder(
-                                                                              borderRadius: BorderRadius.zero,
-                                                                            ),
-                                                                          ),
-                                                                          onPressed: () {
-                                                                            Navigator.of(context).pop(); // Close the dialog
-                                                                          },
-                                                                          child: const Text('Okay'),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          );
-                                                        },
-                                                      );
-                                                    },
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.transparent,
-                                                      foregroundColor: Colors.white,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.zero,
-                                                      ),
-                                                    ),
-                                                    child: const Text('Yes', style: TextStyle(color: Colors.white)),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.of(context).pop(); // Yes action
-                                                    },
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.transparent,
-                                                      foregroundColor: Colors.white,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.zero,
-                                                      ),
-                                                    ),
-                                                    child: const Text('No', style: TextStyle(color: Colors.white)),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
+                                // Use the confirmation dialog here
+                                onPressed: _isLoading ? null : _showConfirmationDialog,
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(color: Colors.white, width: 2),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                 ),
-                                child: const Text(
-                                  'Update account!',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                // Use the _isLoading flag to show the spinner
+                                child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24, height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : const Text(
+                                      'Update account!',
+                                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                    ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 20),
                           ],
                         ),
@@ -474,59 +476,6 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _updateAccount() {
-    // Validate fields
-    if (_nameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _selectedAgency == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all fields'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Handle account creation logic here
-    print('Creating account for: ${_nameController.text}');
-    print('Email: ${_emailController.text}');
-    print('Agency: $_selectedAgency');
-    
-    // Close the dialog
-    Navigator.of(context).pop({
-      'name': _nameController.text,
-      'email': _emailController.text,
-      'agency': _selectedAgency,
-    });
-  }
-}
-
-// Usage example:
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Demo')),
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return const UpdateAccountPopup();
-                },
-              );
-            },
-            child: const Text('Show Update Account Popup'),
-          ),
         ),
       ),
     );

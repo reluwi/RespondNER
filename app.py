@@ -260,6 +260,47 @@ def delete_users():
         if conn:
             conn.close()
 
+# --- NEW ENDPOINT TO UPDATE A USER ---
+@app.route('/update_user/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    """Updates an existing user's information."""
+    conn = None
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        username = data.get('username')
+        agency_name = data.get('agency_name')
+        # For simplicity, we won't handle password updates in this call,
+        # as that often requires a separate, more secure process.
+
+        if not all([email, username, agency_name]):
+            return jsonify({"success": False, "message": "All fields except password are required."}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if the new email is already taken by another user
+        cursor.execute("SELECT id FROM users WHERE email = %s AND id != %s", (email, user_id))
+        if cursor.fetchone():
+            return jsonify({"success": False, "message": "This email is already in use by another account."}), 409
+
+        query = """
+            UPDATE users
+            SET email = %s, username = %s, agency_name = %s
+            WHERE id = %s
+        """
+        cursor.execute(query, (email, username, agency_name, user_id))
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Account updated successfully."}), 200
+
+    except Exception as e:
+        if conn: conn.rollback()
+        print(f"Update user error: {e}")
+        return jsonify({"success": False, "message": "An internal server error occurred."}), 500
+    finally:
+        if conn: conn.close()
+
 # This allows you to run the app by executing `python app.py`
 if __name__ == '__main__':
     # host='0.0.0.0' makes the server accessible from your network

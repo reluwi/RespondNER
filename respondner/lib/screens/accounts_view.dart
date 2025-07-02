@@ -118,10 +118,30 @@ class _AccountsViewState extends State<AccountsView> {
   }
 
   void _updateItem() {
+    // Validation: Ensure exactly one account is selected
+    if (_selectedAccountIds.length != 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select exactly one account to update.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    // Find the full Account object that was selected
+    final accountIdToUpdate = _selectedAccountIds.first;
+    final accountToUpdate = _allAccounts.firstWhere((acc) => acc.id == accountIdToUpdate);
+    
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return const UpdateAccountPopup(); // This returns your popup widget
+        // Pass the selected account and the refresh callback to the popup
+        return UpdateAccountPopup(
+          accountToUpdate: accountToUpdate,
+          onAccountUpdated: () {
+            _fetchAccounts();
+            setState(() => _selectedAccountIds.clear());
+          },
+        );
       },
     );
   }
