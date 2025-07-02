@@ -37,7 +37,7 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
     // Pre-fill the form fields with the existing account data
     _nameController.text = widget.accountToUpdate.name;
     _emailController.text = widget.accountToUpdate.email;
-    _passwordController.text = widget.accountToUpdate.password;
+    //_passwordController.text = widget.accountToUpdate.password;
     
     // Ensure the agency exists in the list before setting it
     if (_agencies.contains(widget.accountToUpdate.agencyName)) {
@@ -363,7 +363,7 @@ class _UpdateAccountPopupState extends State<UpdateAccountPopup> {
                       style: const TextStyle(color: Colors.white),
                       obscureText: true,
                       decoration: const InputDecoration(
-                        hintText: 'Write password',
+                        hintText: 'Enter new password to change',
                         hintStyle: TextStyle(color: Colors.white54),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(

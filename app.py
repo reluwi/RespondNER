@@ -270,12 +270,11 @@ def update_user(user_id):
         email = data.get('email')
         username = data.get('username')
         agency_name = data.get('agency_name')
-        # For simplicity, we won't handle password updates in this call,
-        # as that often requires a separate, more secure process.
+        new_password = data.get('password')
 
         if not all([email, username, agency_name]):
             return jsonify({"success": False, "message": "All fields except password are required."}), 400
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -284,12 +283,25 @@ def update_user(user_id):
         if cursor.fetchone():
             return jsonify({"success": False, "message": "This email is already in use by another account."}), 409
 
-        query = """
-            UPDATE users
-            SET email = %s, username = %s, agency_name = %s
-            WHERE id = %s
-        """
-        cursor.execute(query, (email, username, agency_name, user_id))
+        if new_password and new_password != '••••••••':
+            # If a new password was provided, update it along with the other fields.
+            query = """
+                UPDATE users
+                SET email = %s, username = %s, agency_name = %s, password = %s
+                WHERE id = %s
+            """
+            params = (email, username, agency_name, new_password, user_id)
+        else:
+            # If no new password was provided, only update the other fields.
+            query = """
+                UPDATE users
+                SET email = %s, username = %s, agency_name = %s
+                WHERE id = %s
+            """
+            params = (email, username, agency_name, user_id)
+        
+        cursor.execute(query, params)
+        
         conn.commit()
 
         return jsonify({"success": True, "message": "Account updated successfully."}), 200
