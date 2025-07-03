@@ -69,7 +69,7 @@ def get_mock_posts():
         # 3. Sort the entire DataFrame by the new datetime column, latest first.
         df.sort_values(by='datetime_obj', ascending=False, inplace=True)
         # 4. Take the top 15 most recent posts.
-        sample_df = df.head(15)
+        sample_df = df.head(20)
  
         
         # Fill any empty cells (NaN) with empty strings to prevent errors
