@@ -102,7 +102,7 @@ def get_mock_posts():
                         entities.append(f"[Organization: {org.strip()}]")
 
             if row['Emergency Terms']:
-                 # Handle multiple terms separated by commas
+                # Handle multiple terms separated by commas
                 terms = row['Emergency Terms'].split(',')
                 for term in terms:
                     if term.strip():
@@ -133,41 +133,46 @@ def get_mock_posts():
 
 @app.route('/login', methods=['POST'])
 def login():
-    """Handles user login requests."""
+    """Handles user login requests with improved logic and robustness."""
     conn = None
     try:
         data = request.get_json()
-        email = data.get('email')
-        user_password = data.get('password')
+        # Use .strip() to remove any leading/trailing whitespace from user input
+        email = data.get('email', '').strip()
+        user_password = data.get('password', '')
 
         if not email or not user_password:
             return jsonify({"success": False, "message": "Email and password are required."}), 400
 
         conn = get_db_connection()
-        # The 'cursor_factory' makes it easier to work with results
         cursor = conn.cursor(cursor_factory=DictCursor)
 
-        # Note: PostgreSQL uses '%s' for placeholders, just like mysql-connector
         query = "SELECT password FROM users WHERE email = %s"
         cursor.execute(query, (email,))
         result = cursor.fetchone()
 
-        if result:
-            stored_password = result['password'] # Access by column name
+        # This is the clear and correct logic flow
+        if result is not None:
+            # We found a user with that email
+            stored_password = result['password']
             if user_password == stored_password:
+                # The password matches! Success.
                 return jsonify({"success": True, "message": "Login successful."})
-
-        return jsonify({"success": False, "message": "Invalid credentials."})
+            else:
+                # Password does not match. Failure.
+                return jsonify({"success": False, "message": "Invalid credentials."})
+        else:
+            # No user found with that email. Failure.
+            return jsonify({"success": False, "message": "Invalid credentials."})
 
     except Exception as e:
-        # Print the specific error to the logs for debugging
-        print(f"An error occurred: {e}")
+        print(f"An error occurred during login: {e}")
         return jsonify({"success": False, "message": "An internal server error occurred."}), 500
     finally:
         if conn:
             conn.close()
 
-# --- NEW ENDPOINT TO FETCH ALL USER ACCOUNTS ---
+# --- ENDPOINT TO FETCH ALL USER ACCOUNTS ---
 @app.route('/get_all_users', methods=['GET'])
 def get_all_users():
     """Fetches a list of all users from the database."""
@@ -176,7 +181,7 @@ def get_all_users():
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=DictCursor)
         
-        # Note: We are selecting 'is_admin' to determine the account type.
+        # We are selecting 'is_admin' to determine the account type.
         # We are NOT selecting the password. Never send passwords to the client.
         query = "SELECT id, email, username, is_admin, agency_name FROM users ORDER BY id ASC"
         cursor.execute(query)
